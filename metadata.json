@@ -1,0 +1,5 @@
+{
+  "name": "MD2PDF OnePage",
+  "description": "Konverter Markdown ke PDF satu halaman berbasis klien. Memadatkan konten agar muat dalam satu halaman PDF.",
+  "requestFramePermissions": []
+}
