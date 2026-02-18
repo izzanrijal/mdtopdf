@@ -36,6 +36,7 @@ function App() {
 
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [isAutoDownload, setIsAutoDownload] = useState<boolean>(false);
 
   // Function to load markdown from URL
   const loadMarkdownFromUrl = useCallback(async (url: string) => {
@@ -71,6 +72,7 @@ function App() {
     if (fileUrl) {
       // Validate URL simple check
       if (fileUrl.startsWith('http')) {
+        setIsAutoDownload(true); // Flag to trigger download after load
         loadMarkdownFromUrl(fileUrl);
       } else {
         setErrorMsg('URL tidak valid. Harap gunakan http:// atau https://');
@@ -78,6 +80,29 @@ function App() {
       }
     }
   }, [loadMarkdownFromUrl]);
+
+  // Auto Download Effect
+  useEffect(() => {
+    if (status === AppStatus.SUCCESS && isAutoDownload) {
+      // Set status to generating
+      setStatus(AppStatus.GENERATING_PDF);
+      
+      // Wait for DOM to fully paint (images, fonts, layout)
+      const timer = setTimeout(async () => {
+        try {
+          await generateSinglePagePDF('markdown-container', markdownFile.filename);
+          setStatus(AppStatus.SUCCESS);
+          setIsAutoDownload(false); // Reset flag so it doesn't loop
+        } catch (err) {
+          console.error(err);
+          setErrorMsg('Gagal melakukan auto-download PDF.');
+          setStatus(AppStatus.ERROR);
+        }
+      }, 1500); // 1.5s delay to ensure rendering is complete
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, isAutoDownload, markdownFile.filename]);
 
   const handleDownload = async () => {
     setStatus(AppStatus.GENERATING_PDF);
@@ -183,6 +208,17 @@ function App() {
             <div className="text-center">
                 <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mx-auto mb-4" />
                 <p className="text-gray-600 font-medium">Memuat konten markdown...</p>
+            </div>
+          </div>
+        )}
+
+         {/* Auto Generating State Overlay */}
+         {isAutoDownload && status === AppStatus.GENERATING_PDF && (
+          <div className="absolute inset-0 bg-indigo-900/10 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-xl shadow-xl text-center">
+                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4" />
+                <h3 className="font-bold text-gray-800 text-lg">Mengunduh PDF...</h3>
+                <p className="text-gray-500 text-sm">Sedang memproses satu halaman.</p>
             </div>
           </div>
         )}
